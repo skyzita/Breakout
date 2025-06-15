@@ -117,14 +117,15 @@ int main( void ) {
     };
 
     jogador = ( Jogador ) {
+                .dim = {
+            .x = 75,
+            .y = 10
+        },
         .pos = {
             .x = GetScreenWidth() / 2,
             .y = GetScreenHeight() - 20,
         },
-        .dim = {
-            .x = 50,
-            .y = 10
-        },
+
         .vel = 90,
         .cor = BLUE
     };
@@ -210,13 +211,16 @@ void desenharJogador( Jogador *jogador ) {
 
 void atualizarJogador( Jogador *jogador, float delta ) {
 
-    if ( IsKeyDown( KEY_A ) ) {
+    if (( IsKeyDown( KEY_A ) || IsKeyDown( KEY_LEFT ) ) && 
+        jogador->pos.x - jogador->dim.x >= -50) {
         jogador->pos.x -= jogador->vel * delta;
     }
     
-    if ( IsKeyDown( KEY_D ) ) {
+    if (( IsKeyDown( KEY_D) || IsKeyDown( KEY_RIGHT ) ) && 
+    jogador->pos.x + jogador->dim.x <= GetScreenWidth() - 25 ) {
         jogador->pos.x += jogador->vel * delta;
     }
+
 }
 
 void desenharTijolos( Tijolo *tijolo ) {

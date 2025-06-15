@@ -60,6 +60,11 @@ typedef struct Tijolo {
 /*---------------------------------------------
  * Global variables.
  *-------------------------------------------*/
+
+ // Variaveis para mostrar a mensagem de início de jogo 
+ int iniciar = 0;
+bool textoInicio = true;
+
 Bola bola;
 Jogador jogador;
 Tijolo tijolos; //Usei array bidimensional, pode me matar mesmo - Mari
@@ -83,6 +88,7 @@ void desenharJogador( Jogador *jogador );
 void atualizarJogador( Jogador *jogador, float delta );
 void desenharTijolos( Tijolo *tijolo );
 void atualizarTijolos( Tijolo *tijolo, float delta );
+
 
 //Bool que testa a colisão com o jogador :3 - Ebi
 bool checarColisao(Vector2 bolaPos, float raio, Rectangle rect);
@@ -110,7 +116,7 @@ int main( void ) {
     bola = ( Bola ) {
         .pos = {
             .x = GetScreenWidth() / 2,
-            .y = GetScreenHeight() / 2
+            .y = GetScreenHeight() - 150
         },
         .vel = {
             .x = 90,
@@ -164,8 +170,16 @@ int main( void ) {
 
 void update( float delta ) {
 
+    for(int i = 0; i < 2; i++){
+        if(iniciar == 0 && IsKeyPressed(KEY_SPACE)){
+            iniciar++;
+            textoInicio = false;
+        }
+    }
+    if(iniciar == 1){
     atualizarBola( &bola, GetFrameTime() );
     atualizarJogador( &jogador, GetFrameTime() );
+    }
 }
 
 void draw( void ) {
@@ -176,6 +190,10 @@ void draw( void ) {
     desenharBola( &bola );
     desenharJogador( &jogador );
     desenharTijolos( &tijolos );
+
+    if(textoInicio){
+        DrawText("Pressione ESPAÇO para começar!", 100, 400 , 20, WHITE);
+    }
 
     EndDrawing();
 

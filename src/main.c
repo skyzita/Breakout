@@ -8,6 +8,7 @@
  */
 #include <stdio.h>
 #include <stdlib.h>
+#include <math.h>
 #include <stdbool.h>
 
 
@@ -83,6 +84,9 @@ void atualizarJogador( Jogador *jogador, float delta );
 void desenharTijolos( Tijolo *tijolo );
 void atualizarTijolos( Tijolo *tijolo, float delta );
 
+//Bool que testa a colisão com o jogador :3 - Ebi
+bool checarColisao(Vector2 bolaPos, float raio, Rectangle rect);
+
 /**
  * @brief Game entry point.
  */
@@ -117,15 +121,14 @@ int main( void ) {
     };
 
     jogador = ( Jogador ) {
-                .dim = {
-            .x = 75,
-            .y = 10
-        },
         .pos = {
             .x = GetScreenWidth() / 2,
             .y = GetScreenHeight() - 20,
         },
-
+        .dim = {
+            .x = 75,
+            .y = 10
+        },
         .vel = 90,
         .cor = BLUE
     };
@@ -188,36 +191,66 @@ void atualizarBola( Bola *bola, float delta ) {
     bola->pos.x += bola->vel.x * delta;
     bola->pos.y += bola->vel.y * delta;
 
-    if ( bola->pos.x - bola->raio <= 0 ) {
-        bola->vel.x *= -1;
-    }
-    else if ( bola->pos.x + bola->raio >= GetScreenWidth() ) {
+
+    //Fazendo isso apenas para ficar mais legível :)
+    //Direita e Esquerda
+    float xDireita = bola->pos.x + bola->raio;
+    float xEsquerda = bola->pos.x - bola->raio;
+
+    //Norte e Sul
+    float yNorte = bola->pos.y + bola->raio;
+    float ySul = bola->pos.y - bola->raio;
+
+    //Colisões com Paredes Laterais
+    if ( xEsquerda <= 0 || 
+        xDireita >= GetScreenWidth()) 
+        {
         bola->vel.x *= -1;
     }
 
-   if ( bola->pos.y - bola->raio <= 0 ) {
+    //Colisões com Teto e Chão
+   if ( ySul <= 0 || 
+    yNorte >= GetScreenHeight()) 
+    {
         bola->vel.y *= -1;
+        
+
     }
-    else if ( bola->pos.y + bola->raio >= GetScreenHeight() ) {
+    Rectangle jogadorRect = {jogador.pos.x, jogador.pos.y, jogador.dim.x, jogador.dim.y};
+    if(checarColisao(bola->pos, bola->raio, jogadorRect)) {
         bola->vel.y *= -1;
-    }
+
+        bola->pos.y = jogador.pos.y - bola->raio;
+
+}
+
+
+    
+    
 
 }
 
 void desenharJogador( Jogador *jogador ) {
 
-    DrawRectangleV( jogador->pos, jogador->dim, jogador->cor );
+    //Melhor usar o DrawRectangle normal pois ele centraliza do jeito que a gente quer :)
+    DrawRectangle(
+        jogador->pos.x - jogador->dim.x / 2,
+        jogador->pos.y - jogador->dim.y /2,
+        jogador->dim.x,
+        jogador->dim.y,
+        jogador->cor
+    );
 }
 
 void atualizarJogador( Jogador *jogador, float delta ) {
 
     if (( IsKeyDown( KEY_A ) || IsKeyDown( KEY_LEFT ) ) && 
-        jogador->pos.x - jogador->dim.x >= -50) {
+        jogador->pos.x - jogador->dim.x >= 0) {
         jogador->pos.x -= jogador->vel * delta;
     }
     
     if (( IsKeyDown( KEY_D) || IsKeyDown( KEY_RIGHT ) ) && 
-    jogador->pos.x + jogador->dim.x <= GetScreenWidth() - 25 ) {
+    jogador->pos.x + jogador->dim.x <= GetScreenWidth() ) {
         jogador->pos.x += jogador->vel * delta;
     }
 
@@ -260,4 +293,18 @@ void desenharTijolos( Tijolo *tijolo ) {
         }
     }
 }
+
+bool checarColisao(Vector2 bolaPos, float raio, Rectangle rect){
+    float xMaisProximo = fmaxf(rect.x, fminf(bolaPos.x, rect.x + rect.width));
+    float yMaisProximo = fmaxf(rect.y, fminf(bolaPos.y, rect.y + rect.height));
+
+
+    float distanciaX = bolaPos.x - xMaisProximo;
+    float distanciaY = bolaPos.y - yMaisProximo;
+
+    float distanciaQuadrada = (distanciaX * distanciaX) + (distanciaY * distanciaY);
+
+    return distanciaQuadrada < (raio * raio);
+}
+
 

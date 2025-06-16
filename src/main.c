@@ -10,6 +10,8 @@
 #include <stdlib.h>
 #include <math.h>
 #include <stdbool.h>
+#include <ctype.h>
+#include <string.h>
 
 
 /*---------------------------------------------
@@ -49,6 +51,7 @@ typedef struct Jogador {
     Vector2 dim;
     Color cor;
     float vel;
+    int vidas;
 } Jogador;
 
 typedef struct Tijolo {
@@ -64,6 +67,10 @@ typedef struct Tijolo {
  // Variaveis para mostrar a mensagem de início de jogo 
  int iniciar = 0;
 bool textoInicio = true;
+bool textoRetorno = false;
+bool textoGameOver = false;
+ int vidaPerdida = 0;
+int pontuacao = 0;
 
 Bola bola;
 Jogador jogador;
@@ -88,7 +95,11 @@ void desenharJogador( Jogador *jogador );
 void atualizarJogador( Jogador *jogador, float delta );
 void desenharTijolos( Tijolo *tijolo );
 void atualizarTijolos( Tijolo *tijolo, float delta );
+void desenharUI(int vidas, int pontos);
 
+
+void perderVida(int vidas);
+void resetarPosicoes();
 
 //Bool que testa a colisão com o jogador :3 - Ebi
 bool checarColisao(Vector2 bolaPos, float raio, Rectangle rect);
@@ -103,7 +114,7 @@ int main( void ) {
     // antialiasing
     SetConfigFlags( FLAG_MSAA_4X_HINT );
 
-    // creates a new window 800 pixels wide and 450 pixels high
+    // creates a new window 515 pixels wide and 600 pixels high
     InitWindow( 515, 600, "Breakout" );
 
     // init audio device only if your game uses sounds
@@ -136,7 +147,8 @@ int main( void ) {
             .y = 10
         },
         .vel = 90,
-        .cor = BLUE
+        .cor = BLUE,
+        .vidas = 3
     };
 
     tijolos = ( Tijolo ) {
@@ -174,9 +186,15 @@ void update( float delta ) {
         if(iniciar == 0 && IsKeyPressed(KEY_SPACE)){
             iniciar++;
             textoInicio = false;
+            textoRetorno = false;
+            textoGameOver = false;
         }
     }
-    if(iniciar == 1){
+
+    if(iniciar >= 1 &&
+    textoRetorno == false &&
+    textoGameOver == false)
+    {
     atualizarBola( &bola, GetFrameTime() );
     atualizarJogador( &jogador, GetFrameTime() );
     }
@@ -187,13 +205,24 @@ void draw( void ) {
     BeginDrawing();
     ClearBackground( BLACK );
     
+    
     desenharBola( &bola );
     desenharJogador( &jogador );
     desenharTijolos( &tijolos );
+    desenharUI(jogador.vidas, pontuacao);
+
+        if(textoGameOver == true){
+        DrawText("GAME OVER", 100, 400, 40, WHITE);
+    }
+
 
     if(textoInicio){
         DrawText("Pressione ESPAÇO para começar!", 100, 400 , 20, WHITE);
     }
+
+    if(textoRetorno == true){
+        DrawText("Pressione ESPAÇO para retornar!", 100, 400, 20, WHITE);
+        }
 
     EndDrawing();
 
@@ -216,8 +245,8 @@ void atualizarBola( Bola *bola, float delta ) {
     float xEsquerda = bola->pos.x - bola->raio;
 
     //Norte e Sul
-    float yNorte = bola->pos.y + bola->raio;
-    float ySul = bola->pos.y - bola->raio;
+    float ySul = bola->pos.y + bola->raio;
+    float yNorte = bola->pos.y - bola->raio;
 
     //Colisões com Paredes Laterais
     if ( xEsquerda <= 0 || 
@@ -227,18 +256,37 @@ void atualizarBola( Bola *bola, float delta ) {
     }
 
     //Colisões com Teto e Chão
-   if ( ySul <= 0 || 
-    yNorte >= GetScreenHeight()) 
+   if ( ySul >= GetScreenHeight() || yNorte <= 0  )
     {
         bola->vel.y *= -1;
-        
 
+        if(ySul >= GetScreenHeight()){
+            jogador.vidas--;
+
+            if(jogador.vidas == 0){
+                
+                iniciar = 0;
+                textoGameOver == true;
+            }
+
+            if(jogador.vidas > 0){
+                resetarPosicoes();
+            }
+
+        }
     }
-    Rectangle jogadorRect = {jogador.pos.x, jogador.pos.y, jogador.dim.x, jogador.dim.y};
-    if(checarColisao(bola->pos, bola->raio, jogadorRect)) {
+ 
+    Rectangle jogadorRect = {
+        //Posição
+        jogador.pos.x - jogador.dim.x / 2, 
+        jogador.pos.y - jogador.dim.y / 2, 
+        //Dimensões
+        jogador.dim.x, 
+        jogador.dim.y};
+  
+        if(checarColisao(bola->pos, bola->raio, jogadorRect)) {
         bola->vel.y *= -1;
-
-        bola->pos.y = jogador.pos.y - bola->raio;
+        bola->pos.y = jogadorRect.y - bola->raio;
 
 }
 
@@ -326,3 +374,27 @@ bool checarColisao(Vector2 bolaPos, float raio, Rectangle rect){
 }
 
 
+void desenharUI(int vidas, int pontos){
+    char qtdVidas[50];
+    char qtdPontos[100];
+    sprintf(qtdVidas, "Vidas: %d", vidas);
+    sprintf(qtdPontos,"Pontuação: %d", pontos);
+
+
+
+    DrawText(qtdVidas, GetScreenWidth() / 8, GetScreenHeight() / 16, 15, WHITE);
+
+    DrawText(qtdPontos, GetScreenWidth() - 150, GetScreenHeight() / 16, 15, WHITE);
+}
+
+void resetarPosicoes(){
+    bola.pos = (Vector2){ GetScreenWidth() / 2, GetScreenHeight() - 150};
+    bola.vel = (Vector2){ 90, 90 };
+
+
+    jogador.pos = (Vector2){ GetScreenWidth() / 2, GetScreenHeight() - 20 };
+
+    iniciar = 0;
+    textoRetorno = true;
+
+}

@@ -52,29 +52,35 @@ typedef struct Jogador {
     Color cor;
     float vel;
     int vidas;
+    int pontuacao;
 } Jogador;
 
 typedef struct Tijolo {
     Vector2 pos;
     Vector2 dim;
     Color cor;
+    bool aparecendo;
 } Tijolo;
+
+typedef enum EstadoDoJogo {
+    INICIO,
+    JOGANDO,
+    RETORNO,
+    GAMEOVER,
+    VITORIA
+} EstadoDoJogo;
 
 /*---------------------------------------------
  * Global variables.
  *-------------------------------------------*/
 
  // Variaveis para mostrar a mensagem de início de jogo 
- int iniciar = 0;
-bool textoInicio = true;
-bool textoRetorno = false;
-bool textoGameOver = false;
- int vidaPerdida = 0;
-int pontuacao = 0;
 
 Bola bola;
 Jogador jogador;
-Tijolo tijolos; //Usei array bidimensional, pode me matar mesmo - Mari
+Tijolo tijolos[8][8];
+EstadoDoJogo estado = INICIO;
+bool linhaAumentada[8] = { false };
 
 /*---------------------------------------------
  * Function prototypes. 
@@ -93,16 +99,21 @@ void desenharBola( Bola *bola );
 void atualizarBola( Bola *bola, float delta );
 void desenharJogador( Jogador *jogador );
 void atualizarJogador( Jogador *jogador, float delta );
-void desenharTijolos( Tijolo *tijolo );
-void atualizarTijolos( Tijolo *tijolo, float delta );
+void desenharTijolos( Tijolo tijolo[8][8] );
 void desenharUI(int vidas, int pontos);
-
-
+void desenharTextos( EstadoDoJogo estado );
 void perderVida(int vidas);
 void resetarPosicoes();
 
 //Bool que testa a colisão com o jogador :3 - Ebi
 bool checarColisao(Vector2 bolaPos, float raio, Rectangle rect);
+
+//Funcao que cria um array bidimensional que guarda as coords de cada bloco
+void criarTijolos( Tijolo tijolo[8][8] );
+
+//Funcao que checa se houve colisao bloco por bloco
+void checarColisaoTijolo( Tijolo tijolo[8][8], Bola *bola );
+void aumentarVelBola( Bola *bola, Tijolo tijolo[8][8] );
 
 /**
  * @brief Game entry point.
@@ -146,22 +157,13 @@ int main( void ) {
             .x = 75,
             .y = 10
         },
-        .vel = 90,
+        .vel = 150,
         .cor = BLUE,
-        .vidas = 3
+        .vidas = 3,
+        .pontuacao = 0
     };
 
-    tijolos = ( Tijolo ) {
-        .pos = {
-            .x = 0,
-            .y = 100
-        },
-        .dim = {
-            .x = 60,
-            .y = 20
-        },
-        .cor = RED
-    };
+    criarTijolos( tijolos );
 
     // game loop
     while ( !WindowShouldClose() ) {
@@ -182,21 +184,17 @@ int main( void ) {
 
 void update( float delta ) {
 
-    for(int i = 0; i < 2; i++){
-        if(iniciar == 0 && IsKeyPressed(KEY_SPACE)){
-            iniciar++;
-            textoInicio = false;
-            textoRetorno = false;
-            textoGameOver = false;
+    if ( estado == INICIO || estado == RETORNO ) {
+        if ( IsKeyPressed( KEY_SPACE ) ) {
+            estado = JOGANDO;
         }
     }
 
-    if(iniciar >= 1 &&
-    textoRetorno == false &&
-    textoGameOver == false)
-    {
-    atualizarBola( &bola, GetFrameTime() );
-    atualizarJogador( &jogador, GetFrameTime() );
+    if( estado == JOGANDO ) {
+        atualizarBola( &bola, GetFrameTime() );
+        atualizarJogador( &jogador, GetFrameTime() );
+        checarColisaoTijolo( tijolos, &bola );
+        aumentarVelBola( &bola, tijolos );
     }
 }
 
@@ -205,25 +203,12 @@ void draw( void ) {
     BeginDrawing();
     ClearBackground( BLACK );
     
-    
     desenharBola( &bola );
     desenharJogador( &jogador );
-    desenharTijolos( &tijolos );
-    desenharUI(jogador.vidas, pontuacao);
-
-        if(textoGameOver == true){
-        DrawText("GAME OVER", 100, 400, 40, WHITE);
-    }
-
-
-    if(textoInicio){
-        DrawText("Pressione ESPAÇO para começar!", 100, 400 , 20, WHITE);
-    }
-
-    if(textoRetorno == true){
-        DrawText("Pressione ESPAÇO para retornar!", 100, 400, 20, WHITE);
-        }
-
+    desenharTijolos( tijolos );
+    desenharUI(jogador.vidas, jogador.pontuacao);
+    desenharTextos( estado );
+        
     EndDrawing();
 
 }
@@ -249,30 +234,26 @@ void atualizarBola( Bola *bola, float delta ) {
     float yNorte = bola->pos.y - bola->raio;
 
     //Colisões com Paredes Laterais
-    if ( xEsquerda <= 0 || 
-        xDireita >= GetScreenWidth()) 
-        {
+    if ( xEsquerda <= 0 || xDireita >= GetScreenWidth()) {
         bola->vel.x *= -1;
     }
 
     //Colisões com Teto e Chão
-   if ( ySul >= GetScreenHeight() || yNorte <= 0  )
-    {
+   if ( ySul >= GetScreenHeight() || yNorte <= 0  ) {
+        
         bola->vel.y *= -1;
 
-        if(ySul >= GetScreenHeight()){
+        if(ySul >= GetScreenHeight()) {
             jogador.vidas--;
 
-            if(jogador.vidas == 0){
-                
-                iniciar = 0;
-                textoGameOver == true;
+            if(jogador.vidas == 0) {
+            
+                estado = GAMEOVER;
             }
 
-            if(jogador.vidas > 0){
+            if(jogador.vidas > 0) {
                 resetarPosicoes();
             }
-
         }
     }
  
@@ -282,18 +263,14 @@ void atualizarBola( Bola *bola, float delta ) {
         jogador.pos.y - jogador.dim.y / 2, 
         //Dimensões
         jogador.dim.x, 
-        jogador.dim.y};
+        jogador.dim.y
+    };
   
-        if(checarColisao(bola->pos, bola->raio, jogadorRect)) {
+   if(checarColisao(bola->pos, bola->raio, jogadorRect)) {
+        
         bola->vel.y *= -1;
         bola->pos.y = jogadorRect.y - bola->raio;
-
-}
-
-
-    
-    
-
+    }
 }
 
 void desenharJogador( Jogador *jogador ) {
@@ -310,60 +287,57 @@ void desenharJogador( Jogador *jogador ) {
 
 void atualizarJogador( Jogador *jogador, float delta ) {
 
-    if (( IsKeyDown( KEY_A ) || IsKeyDown( KEY_LEFT ) ) && 
-        jogador->pos.x - jogador->dim.x >= 0) {
+    if (( IsKeyDown( KEY_A ) || IsKeyDown( KEY_LEFT ) ) 
+    && jogador->pos.x - jogador->dim.x / 2 >= 0) {
         jogador->pos.x -= jogador->vel * delta;
     }
     
-    if (( IsKeyDown( KEY_D) || IsKeyDown( KEY_RIGHT ) ) && 
-    jogador->pos.x + jogador->dim.x <= GetScreenWidth() ) {
+    if (( IsKeyDown( KEY_D) || IsKeyDown( KEY_RIGHT ) ) 
+    && jogador->pos.x + jogador->dim.x / 2 <= GetScreenWidth() ) {
         jogador->pos.x += jogador->vel * delta;
     }
 
 }
 
-void desenharTijolos( Tijolo *tijolo ) {
+void desenharTijolos( Tijolo tijolo[8][8] ) {
 
-    for ( int i = 0; i < 8; i++ ) {
-        if ( i == 1 ) {
-            tijolo->cor = ORANGE; //se tiver uma forma de deixar isso menor, faça pfv - Mari
+    
+    for ( int j = 0; j < 8; j++ ) {
+        for ( int i = 0; i < 8; i++ ) {
+            if ( tijolo[i][j].aparecendo == true ) {
+                if ( j == 1 ) {
+                    tijolo[i][j].cor = ORANGE; //se tiver uma forma de deixar isso menor, faça pfv - Mari
+                }
+                else if ( j == 2 ) {
+                    tijolo[i][j].cor = YELLOW;
+                }
+                else if ( j == 3 ) {
+                tijolo[i][j].cor = GREEN;
+                }
+                else if ( j == 4 ) {
+                    tijolo[i][j].cor = SKYBLUE;
+                }
+                else if ( j == 5 ) {
+                    tijolo[i][j].cor = BLUE;
+                }
+                else if ( j == 6 ) {
+                    tijolo[i][j].cor = PURPLE;
+                }
+                else if ( j == 7 ) {
+                    tijolo[i][j].cor = VIOLET;
+                } else {
+                    tijolo[i][j].cor = RED;
+                }
+
+                DrawRectangleV( tijolo[i][j].pos, tijolo[i][j].dim, tijolo[i][j].cor);
+            }
         }
-        else if ( i == 2 ) {
-            tijolo->cor = YELLOW;
-        }
-        else if ( i == 3 ) {
-            tijolo->cor = GREEN;
-        }
-        else if ( i == 4 ) {
-            tijolo->cor = SKYBLUE;
-        }
-        else if ( i == 5 ) {
-            tijolo->cor = BLUE;
-        }
-        else if ( i == 6 ) {
-            tijolo->cor = PURPLE;
-        }
-        else if ( i == 7 ) {
-            tijolo->cor = VIOLET;
-        } else {
-            tijolo->cor = RED;
-        }
-        
-        for ( int j = 0; j < 8; j++ ) {
-            DrawRectangle( 
-            ( tijolo->pos.x + tijolo->dim.x * j ) + 5 * j,
-            ( tijolo->pos.y + tijolo->dim.y * i ) + 5 * i,
-            tijolo->dim.x,
-            tijolo->dim.y,
-            tijolo->cor   );
-        }
-    }
+    }    
 }
 
 bool checarColisao(Vector2 bolaPos, float raio, Rectangle rect){
     float xMaisProximo = fmaxf(rect.x, fminf(bolaPos.x, rect.x + rect.width));
     float yMaisProximo = fmaxf(rect.y, fminf(bolaPos.y, rect.y + rect.height));
-
 
     float distanciaX = bolaPos.x - xMaisProximo;
     float distanciaY = bolaPos.y - yMaisProximo;
@@ -380,8 +354,6 @@ void desenharUI(int vidas, int pontos){
     sprintf(qtdVidas, "Vidas: %d", vidas);
     sprintf(qtdPontos,"Pontuação: %d", pontos);
 
-
-
     DrawText(qtdVidas, GetScreenWidth() / 8, GetScreenHeight() / 16, 15, WHITE);
 
     DrawText(qtdPontos, GetScreenWidth() - 150, GetScreenHeight() / 16, 15, WHITE);
@@ -391,10 +363,105 @@ void resetarPosicoes(){
     bola.pos = (Vector2){ GetScreenWidth() / 2, GetScreenHeight() - 150};
     bola.vel = (Vector2){ 90, 90 };
 
-
     jogador.pos = (Vector2){ GetScreenWidth() / 2, GetScreenHeight() - 20 };
 
-    iniciar = 0;
-    textoRetorno = true;
+    estado = RETORNO;
 
+}
+
+void desenharTextos( EstadoDoJogo estado ) {
+
+    if( estado == INICIO ) {
+        DrawText( "Pressione ESPAÇO para começar!", 100, 400 , 20, WHITE );
+    }
+
+    if( estado == RETORNO ) {
+        DrawText("Pressione ESPAÇO para retornar!", 100, 400, 20, WHITE);
+    }
+
+    if( estado == GAMEOVER ) {
+        DrawText("GAME OVER", 100, 400, 40, WHITE);
+    }
+
+}
+
+void criarTijolos( Tijolo tijolo[8][8] ) {
+
+    for ( int j = 0; j < 8; j++ ) {
+        for ( int i = 0; i < 8; i++ ) {
+            tijolo[i][j] = ( Tijolo ) {
+                .pos = {
+                    .x = ( 0 + 60 * i ) + 5 * i,
+                    .y = ( 100 + 20 * j ) + 5 * j
+                },
+                .dim = {
+                    .x = 60,
+                    .y = 20
+                },
+                .cor = RED,
+                .aparecendo = true
+            };
+        }
+    }
+}
+
+void checarColisaoTijolo( Tijolo tijolo[8][8], Bola *bola ) {
+
+    for ( int j = 0; j < 8; j++ ) {
+        for ( int i = 0; i < 8; i++ ) {
+            bool c1 = CheckCollisionCircleRec( 
+            bola->pos, 
+            bola->raio, 
+            ( Rectangle ) {
+                .x = tijolo[i][j].pos.x,
+                .y = tijolo[i][j].pos.y,
+                .width = tijolo[i][j].dim.x,
+                .height = tijolo[i][j].dim.y
+                }
+            );
+
+            if ( c1 && tijolo[i][j].aparecendo != false ) {
+                tijolo[i][j].aparecendo = false;
+                bola->vel.y *= -1;
+                jogador.pontuacao += 100 + 100 * ( ( j - 7 ) * -1 );
+            }
+        }
+    }
+}
+
+void aumentarVelBola( Bola *bola, Tijolo tijolo[8][8] ) {
+
+    bool linhaDestruida = false;
+    int blocosDestruidos = 0;
+
+    for ( int j = 0; j < 8; j++ ) {
+        for ( int i = 0; i < 8; i++ ) {
+            if ( tijolo[i][j].aparecendo == false ) {
+                blocosDestruidos++;
+            }
+        }
+        if ( blocosDestruidos == 8 && !linhaAumentada[j] ) {
+            linhaDestruida = true;
+            linhaAumentada[j] = true;
+        } else {
+            blocosDestruidos = 0;
+        }
+        
+    }
+
+    if ( linhaDestruida ) {
+        if ( bola->vel.x > 0 ) {
+            bola->vel.x += 50;
+        } else {
+            bola->vel.x -= 50;
+        }
+        
+        if ( bola->vel.y > 0 ) {
+            bola->vel.y += 50;
+        } else {
+            bola->vel.y -= 50;
+        }
+
+        linhaDestruida = false;
+    }
 }

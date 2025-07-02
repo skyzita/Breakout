@@ -96,7 +96,6 @@ void update( float delta );
  */
 void draw( void );
 void desenharBola( Bola *bola );
-/*Eu normalmente deixo o nome do ponteiro igual da variavel que ele ta apontando - Mari*/
 void atualizarBola( Bola *bola, float delta );
 void desenharJogador( Jogador *jogador );
 void atualizarJogador( Jogador *jogador, float delta );
@@ -106,7 +105,7 @@ void desenharTextos( EstadoDoJogo estado );
 void perderVida(int vidas);
 void resetarPosicoes();
 
-//Bool que testa a colisão com o jogador :3 - Ebi
+//Bool que testa a colisão com o jogador :3 
 bool checarColisao(Vector2 bolaPos, float raio, Rectangle rect);
 
 //Funcao que cria um array bidimensional que guarda as coords de cada bloco
@@ -146,7 +145,7 @@ int main( void ) {
             .y = 90
         },
         .raio = 15,
-        .cor = BLUE,
+        .cor = WHITE,
     };
 
     jogador = ( Jogador ) {
@@ -159,7 +158,7 @@ int main( void ) {
             .y = 10
         },
         .vel = 150,
-        .cor = BLUE,
+        .cor = WHITE,
         .vidas = 3,
         .pontuacao = 0
     };
@@ -313,7 +312,7 @@ void desenharTijolos( Tijolo tijolo[8][8] ) {
         for ( int i = 0; i < 8; i++ ) {
             if ( tijolo[i][j].aparecendo == true ) {
                 if ( j == 1 ) {
-                    tijolo[i][j].cor = ORANGE; //se tiver uma forma de deixar isso menor, faça pfv - Mari
+                    tijolo[i][j].cor = ORANGE; 
                 }
                 else if ( j == 2 ) {
                     tijolo[i][j].cor = YELLOW;
@@ -380,6 +379,7 @@ void desenharTextos( EstadoDoJogo estado ) {
 
     if( estado == INICIO ) {
         DrawText( "Pressione ESPAÇO para começar!", 100, 400 , 20, WHITE );
+        
     }
 
     if( estado == RETORNO ) {
@@ -391,9 +391,8 @@ void desenharTextos( EstadoDoJogo estado ) {
     }
 
     if( estado == VITORIA ) {
-        DrawText( "Você Venceu!!!", 140, 400, 40, WHITE);
+        DrawText( "Você Venceu!!!", GetScreenWidth() / 2 - 150, GetScreenHeight() / 2 - 20, 40, WHITE);
     }
-
 }
 
 void criarTijolos( Tijolo tijolo[8][8] ) {

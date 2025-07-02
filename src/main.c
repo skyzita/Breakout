@@ -81,6 +81,7 @@ Jogador jogador;
 Tijolo tijolos[8][8];
 EstadoDoJogo estado = INICIO;
 bool linhaAumentada[8] = { false };
+int linhas = 8;
 
 /*---------------------------------------------
  * Function prototypes. 
@@ -196,6 +197,8 @@ void update( float delta ) {
         checarColisaoTijolo( tijolos, &bola );
         aumentarVelBola( &bola, tijolos );
     }
+
+
 }
 
 void draw( void ) {
@@ -268,7 +271,11 @@ void atualizarBola( Bola *bola, float delta ) {
   
    if(checarColisao(bola->pos, bola->raio, jogadorRect)) {
         
+    
         bola->vel.y *= -1;
+        if(bola->pos.y <= jogadorRect.width / 2){
+            bola->vel.x *= -1;
+        }
         bola->pos.y = jogadorRect.y - bola->raio;
     }
 }
@@ -380,7 +387,11 @@ void desenharTextos( EstadoDoJogo estado ) {
     }
 
     if( estado == GAMEOVER ) {
-        DrawText("GAME OVER", 100, 400, 40, WHITE);
+        DrawText("GAME OVER", 140, 400, 40, WHITE);
+    }
+
+    if( estado == VITORIA ) {
+        DrawText( "Você Venceu!!!", 140, 400, 40, WHITE);
     }
 
 }
@@ -424,15 +435,16 @@ void checarColisaoTijolo( Tijolo tijolo[8][8], Bola *bola ) {
                 tijolo[i][j].aparecendo = false;
                 bola->vel.y *= -1;
                 jogador.pontuacao += 100 + 100 * ( ( j - 7 ) * -1 );
-            }
-        }
+       }
+      }
+     }
     }
-}
 
 void aumentarVelBola( Bola *bola, Tijolo tijolo[8][8] ) {
 
     bool linhaDestruida = false;
     int blocosDestruidos = 0;
+
 
     for ( int j = 0; j < 8; j++ ) {
         for ( int i = 0; i < 8; i++ ) {
@@ -446,10 +458,10 @@ void aumentarVelBola( Bola *bola, Tijolo tijolo[8][8] ) {
         } else {
             blocosDestruidos = 0;
         }
-        
     }
 
     if ( linhaDestruida ) {
+ 
         if ( bola->vel.x > 0 ) {
             bola->vel.x += 50;
         } else {
@@ -463,5 +475,11 @@ void aumentarVelBola( Bola *bola, Tijolo tijolo[8][8] ) {
         }
 
         linhaDestruida = false;
+               linhas--;
+
     }
+
+            if(linhas <= 0){
+            estado = VITORIA;
+        }
 }

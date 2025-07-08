@@ -104,6 +104,7 @@ void desenharUI(int vidas, int pontos);
 void desenharTextos( EstadoDoJogo estado );
 void perderVida(int vidas);
 void resetarPosicoes();
+void reiniciarJogo( void );
 
 //Bool que testa a colisão com o jogador :3 
 bool checarColisao(Vector2 bolaPos, float raio, Rectangle rect);
@@ -195,6 +196,12 @@ void update( float delta ) {
         atualizarJogador( &jogador, GetFrameTime() );
         checarColisaoTijolo( tijolos, &bola );
         aumentarVel( &bola, tijolos );
+    }
+
+        if ( estado == GAMEOVER || estado == VITORIA ) {
+        if ( IsKeyPressed( KEY_R ) ) {
+            reiniciarJogo();
+        }
     }
 
 
@@ -384,6 +391,46 @@ void resetarPosicoes(){
 
 }
 
+void reiniciarJogo( void ) {
+    bola = ( Bola ) {
+        .pos = {
+            .x = GetScreenWidth() / 2,
+            .y = GetScreenHeight() - 150
+        },
+        .vel = {
+            .x = 100,
+            .y = 100  
+        },
+        .raio = 15,
+        .cor = WHITE,
+    };
+
+    jogador = ( Jogador ) {
+        .pos = {
+            .x = GetScreenWidth() / 2,
+            .y = GetScreenHeight() - 20,
+        },
+        .dim = {
+            .x = 75,
+            .y = 10
+        },
+        .vel = 150, 
+        .cor = WHITE,
+        .vidas = 3, 
+        .pontuacao = 0
+    };
+
+    criarTijolos( tijolos );
+
+
+    for ( int i = 0; i < 8; i++ ) {
+        linhaAumentada[i] = false;
+    }
+    linhas = 8; 
+
+    estado = INICIO;
+}
+
 void desenharTextos( EstadoDoJogo estado ) {
 
     if( estado == INICIO ) {
@@ -403,6 +450,7 @@ void desenharTextos( EstadoDoJogo estado ) {
 
     if( estado == VITORIA ) {
         DrawText( "Você Venceu!!!", GetScreenWidth() / 2 - 150, GetScreenHeight() / 2 - 20, 40, WHITE);
+        DrawText("Pressione R para reiniciar!", GetScreenWidth() / 2 - 138, GetScreenHeight() / 2 + 20, 20, WHITE);        
     }
 }
 

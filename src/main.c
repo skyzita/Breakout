@@ -113,7 +113,7 @@ void criarTijolos( Tijolo tijolo[8][8] );
 
 //Funcao que checa se houve colisao bloco por bloco
 void checarColisaoTijolo( Tijolo tijolo[8][8], Bola *bola );
-void aumentarVelBola( Bola *bola, Tijolo tijolo[8][8] );
+void aumentarVel( Bola *bola, Tijolo tijolo[8][8] );
 
 /**
  * @brief Game entry point.
@@ -141,8 +141,8 @@ int main( void ) {
             .y = GetScreenHeight() - 150
         },
         .vel = {
-            .x = 90,
-            .y = 90
+            .x = 100,
+            .y = 100
         },
         .raio = 15,
         .cor = WHITE,
@@ -194,7 +194,7 @@ void update( float delta ) {
         atualizarBola( &bola, GetFrameTime() );
         atualizarJogador( &jogador, GetFrameTime() );
         checarColisaoTijolo( tijolos, &bola );
-        aumentarVelBola( &bola, tijolos );
+        aumentarVel( &bola, tijolos );
     }
 
 
@@ -367,7 +367,16 @@ void desenharUI(int vidas, int pontos){
 
 void resetarPosicoes(){
     bola.pos = (Vector2){ GetScreenWidth() / 2, GetScreenHeight() - 150};
-    bola.vel = (Vector2){ 90, 90 };
+    if(bola.vel.x < 0){
+        bola.vel.x *= -1;
+        bola.vel.x *= 0.9;
+    }
+    if(bola.vel.y < 0){
+        bola.vel.y *= -1;
+        bola.vel.y *= 0.9;
+    }
+    //bola.vel = (Vector2){ 90, 90 };
+
 
     jogador.pos = (Vector2){ GetScreenWidth() / 2, GetScreenHeight() - 20 };
 
@@ -388,7 +397,9 @@ void desenharTextos( EstadoDoJogo estado ) {
 
     if( estado == GAMEOVER ) {
         DrawText("GAME OVER", 140, 400, 40, WHITE);
+        DrawText("Pressione R para reiniciar!", 130, 450, 20, WHITE);
     }
+    
 
     if( estado == VITORIA ) {
         DrawText( "Você Venceu!!!", GetScreenWidth() / 2 - 150, GetScreenHeight() / 2 - 20, 40, WHITE);
@@ -434,12 +445,23 @@ void checarColisaoTijolo( Tijolo tijolo[8][8], Bola *bola ) {
                 tijolo[i][j].aparecendo = false;
                 bola->vel.y *= -1;
                 jogador.pontuacao += 100 + 100 * ( ( j - 7 ) * -1 );
+        if ( bola->vel.x > 0 ) {
+            bola->vel.x += 3.125;
+        } else {
+            bola->vel.x -= 3.125;
+        }
+        
+        if ( bola->vel.y > 0 ) {
+            bola->vel.y += 3.125;
+        } else {
+            bola->vel.y -= 3.125;
+        }
        }
       }
      }
     }
 
-void aumentarVelBola( Bola *bola, Tijolo tijolo[8][8] ) {
+void aumentarVel( Bola *bola, Tijolo tijolo[8][8] ) {
 
     bool linhaDestruida = false;
     int blocosDestruidos = 0;
@@ -460,18 +482,20 @@ void aumentarVelBola( Bola *bola, Tijolo tijolo[8][8] ) {
     }
 
     if ( linhaDestruida ) {
- 
+ /*
         if ( bola->vel.x > 0 ) {
-            bola->vel.x += 50;
+            bola->vel.x += 25;
         } else {
-            bola->vel.x -= 50;
+            bola->vel.x -= 25;
         }
         
         if ( bola->vel.y > 0 ) {
-            bola->vel.y += 50;
+            bola->vel.y += 25;
         } else {
-            bola->vel.y -= 50;
+            bola->vel.y -= 25;
         }
+*/
+        jogador.vel += 7.15;
 
         linhaDestruida = false;
                linhas--;
